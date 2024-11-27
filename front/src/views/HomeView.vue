@@ -1,65 +1,132 @@
 <template>
-  <v-card v-if="user()" class="mx-auto" prepend-icon="mdi-account" width="400">
-    <template v-slot:title>
-      <span class="font-black">Пользователь {{ user().name }}</span>
-    </template>
-    <template v-slot:subtitle>
-      {{ user().role }}
-    </template>
+  <v-card class="elevation-5 mt-5 ml-auto mr-auto" width="1100">
+    <v-data-table
+      :headers="headers"
+      :items="jobs"
+      :group-by="groupBy"
+      :items-per-page="-1"
+      hide-default-footer
+      fixed-header
+      class="elevation-1"
+    >
+      <template v-slot:top>
+        <v-toolbar flat>
+          <v-toolbar-title>Данные с hh.ru</v-toolbar-title>
+          <v-divider class="mx-4" inset vertical></v-divider>
+          <v-spacer></v-spacer>
 
-    <v-card-title class="d-flex justify-center align-center">
-      Справочники
-    </v-card-title>
-    <v-container class="d-flex justify-center align-center">
-      <v-row class="d-flex flex-column align-center">
-        <v-btn color="primary" class="mb-2" to="/warehouses" width="300">
-          Склады
-        </v-btn>
-        <v-btn color="primary" class="mb-2" to="/project_types" width="300">
-          Площадки
-        </v-btn>
-        <v-btn color="primary" class="mb-2" to="/set_types" width="300">
-          Виды комплектов
-        </v-btn>
+          <!-- Upload Button -->
+          <v-btn class="mb-2" color="primary" dark @click="triggerFileInput">
+            Загрузить CSV
+          </v-btn>
+          <input
+            ref="fileInput"
+            type="file"
+            accept=".csv"
+            @change="handleFileUpload"
+            style="display: none"
+          />
+        </v-toolbar>
+      </template>
 
-        <v-btn disabled color="primary" class="mb-2" to="" width="300">
-          Пресеты оборудования
-        </v-btn>
-      </v-row>
-    </v-container>
+      <template
+                  v-slot:group-header="{
+                    item,
+                    columns,
+                    toggleGroup,
+                    isGroupOpen,
+                  }"
+                >
+                  <tr>
+                    <td :colspan="columns.length" @click="toggleGroup(item)">
+                      <v-btn
+                        :class="groupClassify(item)"
+                        :icon="
+                          isGroupOpen(item)
+                            ? 'mdi-chevron-down'
+                            : 'mdi-chevron-right'
+                        "
+                        size="small"
+                        variant="text"
+                      ></v-btn>
+                      <span :class="groupClassify(item)">{{ item.value }}</span>
+
+                      
+                    </td>
+                  </tr>
+                </template>
+
+      <template v-slot:no-data> Нет данных </template>
+    </v-data-table>
   </v-card>
 </template>
 
 <script>
-import { mapActions, mapState } from "vuex";
+import Papa from "papaparse"; // Ensure you install papaparse with `npm install papaparse`
 
 export default {
   name: "HomeView",
   data() {
     return {
-      likes: 0,
-      text: "",
-      uid: "",
-      name: "",
+      jobs: [], // Parsed CSV data
     };
   },
-  computed: {},
-  methods: {
-    ...mapActions({
-      getUser: "user/getUserByUid",
-    }),
-
-    user() {
-      return this.$store.state.user.user;
+  computed: {
+    headers() {
+      // Define headers for your table
+      return [
+        { title: "Дата ввода", key: "entry_date", sortable: true },
+        { title: "Локация", key: "area_name", sortable: true },
+        { title: "Проф роль", key: "professional_roles_name", sortable: true },
+        { title: "Группа вакансий", key: "job_group", sortable: true },
+        { title: "Количество", key: "Count(url)", sortable: true },
+      ];
+    },
+    groupBy() {
+      return [
+        // Define your grouping criteria here
+        { key: "area_name", order: "asc" },
+        { key: "entry_date", order: "asc"},
+        { key: "job_group", order: "asc" },
+      ];
     },
   },
-  watch: {},
-  async mounted() {
-    this.uid = localStorage.getItem("uid");
-
-    if (this.uid) {
-      await this.getUser();
-    }
+  methods: {
+    triggerFileInput() {
+      this.$refs.fileInput.click(); // Simulate file input click
+    },
+    handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (file) {
+        Papa.parse(file, {
+          header: true, // Automatically set headers based on CSV
+          skipEmptyLines: true, // Skip empty rows
+          complete: (result) => {
+            this.jobs = result.data; // Assign parsed data to jobs
+          },
+          error: (error) => {
+            console.error("CSV Parsing Error:", error); // Log errors
+          },
+        });
+      }
+    },
+    groupClassify(item) {
+      if (item.key === "area_name") {
+        return "first-group";
+      } // Adjust this condition
+      if (item.key === "job_group") {
+        return "second-group";
+      }
+    },
   },
 };
 </script>
+
+<style scoped>
+.second-group {
+  margin-left: 20px; /* Adjust this value for more or less indentation */
+}
+.first-group {
+  font-weight: bolder; /* Adjust this value for more or less indentation */
+}
+</style>

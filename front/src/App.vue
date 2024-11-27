@@ -1,7 +1,7 @@
 <template>
   <v-app>
-    <v-app-bar color="primary">
-      <v-toolbar-title>UltraliveDatabase</v-toolbar-title>
+    <!-- <v-app-bar color="primary">
+      <v-toolbar-title>Test</v-toolbar-title>
 
       <v-spacer></v-spacer>
 
@@ -13,7 +13,7 @@
 
       <v-btn v-if="isAuth" text to="/projects">Съёмки</v-btn>
       <v-btn v-if="isAuth" @click="logout()">Выйти</v-btn>
-    </v-app-bar>
+    </v-app-bar> -->
     <v-main>
       <v-container>
         <router-view />
