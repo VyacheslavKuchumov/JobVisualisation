@@ -29,32 +29,28 @@
         </v-toolbar>
       </template>
 
+      <!-- Group Header with Count -->
       <template
-                  v-slot:group-header="{
-                    item,
-                    columns,
-                    toggleGroup,
-                    isGroupOpen,
-                  }"
-                >
-                  <tr>
-                    <td :colspan="columns.length" @click="toggleGroup(item)">
-                      <v-btn
-                        :class="groupClassify(item)"
-                        :icon="
-                          isGroupOpen(item)
-                            ? 'mdi-chevron-down'
-                            : 'mdi-chevron-right'
-                        "
-                        size="small"
-                        variant="text"
-                      ></v-btn>
-                      <span :class="groupClassify(item)">{{ item.value }}</span>
-
-                      
-                    </td>
-                  </tr>
-                </template>
+        v-slot:group-header="{
+          item,
+          columns,
+          toggleGroup,
+          isGroupOpen,
+        }"
+      >
+        <tr>
+          <td :colspan="columns.length" @click="toggleGroup(item)">
+            <v-btn
+              :class="groupClassify(item)"
+              :icon="isGroupOpen(item) ? 'mdi-chevron-down' : 'mdi-chevron-right'"
+              size="small"
+              variant="text"
+            ></v-btn>
+            <span :class="groupClassify(item)">{{ item.value }}</span>
+            <span class="group-count">({{ getGroupCount(item) }})</span>
+          </td>
+        </tr>
+      </template>
 
       <template v-slot:no-data> Нет данных </template>
     </v-data-table>
@@ -62,7 +58,7 @@
 </template>
 
 <script>
-import Papa from "papaparse"; // Ensure you install papaparse with `npm install papaparse`
+import Papa from "papaparse";
 
 export default {
   name: "HomeView",
@@ -73,39 +69,40 @@ export default {
   },
   computed: {
     headers() {
-      // Define headers for your table
       return [
-        { title: "Дата ввода", key: "entry_date", sortable: true },
-        { title: "Локация", key: "area_name", sortable: true },
+        
+        
         { title: "Проф роль", key: "professional_roles_name", sortable: true },
-        { title: "Группа вакансий", key: "job_group", sortable: true },
+        
         { title: "Количество", key: "Count(url)", sortable: true },
       ];
     },
     groupBy() {
       return [
-        // Define your grouping criteria here
         { key: "area_name", order: "asc" },
-        { key: "entry_date", order: "asc"},
+        { key: "entry_date", order: "asc" },
         { key: "job_group", order: "asc" },
       ];
     },
   },
   methods: {
     triggerFileInput() {
-      this.$refs.fileInput.click(); // Simulate file input click
+      this.$refs.fileInput.click();
     },
     handleFileUpload(event) {
       const file = event.target.files[0];
       if (file) {
         Papa.parse(file, {
-          header: true, // Automatically set headers based on CSV
-          skipEmptyLines: true, // Skip empty rows
+          header: true,
+          skipEmptyLines: true,
           complete: (result) => {
-            this.jobs = result.data; // Assign parsed data to jobs
+            this.jobs = result.data.map((job) => ({
+              ...job,
+              "Count(url)": parseInt(job["Count(url)"], 10) || 0,
+            }));
           },
           error: (error) => {
-            console.error("CSV Parsing Error:", error); // Log errors
+            console.error("CSV Parsing Error:", error);
           },
         });
       }
@@ -113,10 +110,14 @@ export default {
     groupClassify(item) {
       if (item.key === "area_name") {
         return "first-group";
-      } // Adjust this condition
+      }
       if (item.key === "job_group") {
         return "second-group";
       }
+    },
+    getGroupCount(item) {
+      const groupItems = this.jobs.filter((job) => job[item.key] === item.value);
+      return groupItems.reduce((sum, job) => sum + (job["Count(url)"] || 0), 0);
     },
   },
 };
@@ -124,9 +125,14 @@ export default {
 
 <style scoped>
 .second-group {
-  margin-left: 20px; /* Adjust this value for more or less indentation */
+  margin-left: 20px;
 }
 .first-group {
-  font-weight: bolder; /* Adjust this value for more or less indentation */
+  font-weight: bolder;
+}
+.group-count {
+  margin-left: 8px;
+  color: gray;
+  font-style: italic;
 }
 </style>
